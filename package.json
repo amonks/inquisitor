@@ -7,9 +7,35 @@
     "type": "git",
     "url": "https://github.com/carldanley/inquisitor.git"
   },
-  "author": "Carl Danley",
+  "scripts": {
+    "test": "mocha -R spec test/index.js",
+    "example": "node example/index.js"
+  },
+  "author": "Carl Danley <carldanley@gmail.com>",
   "bugs": {
     "url": "https://github.com/carldanley/inquisitor/issues"
   },
-  "homepage": "https://github.com/carldanley/inquisitor"
+  "license": "MIT",
+  "keywords": [
+    "command",
+    "prompt",
+    "stdin",
+    "cli",
+    "inquirer"
+  ],
+  "files": [
+    "index.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "homepage": "https://github.com/carldanley/inquisitor",
+  "dependencies": {
+    "bluebird": "^2.3.10",
+    "inquirer": "^0.8.0",
+    "lodash": "^2.4.1"
+  },
+  "devDependencies": {
+    "chai": "^1.9.2",
+    "mocha": "^2.0.1"
+  }
 }
