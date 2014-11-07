@@ -42,12 +42,12 @@ function Inquisitor(manifest) {
  * 
  * - Object: an object containing logic for questions that can pivot the flow.
  *   An object must contain a valid "question" parameter (the name of the
- *   question to ask before pivoting) and a "branch" method that is used to
+ *   question to ask before pivoting) and a "logic" method that is used to
  *   determine the logic for the pivot.
  *
  *   Example: {
  *     question: 'myPivotQuestion',
- *     branch: function(answer) {
+ *     logic: function(answer) {
  *       if (answer === 'something') {
  *         return 'newQuestionToAsk';
  *       }
