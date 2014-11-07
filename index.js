@@ -61,18 +61,34 @@ function Inquisitor(manifest) {
  * 
  * @param {Array} questions An array of questions that will be asked
  * @return {Promise} Promise that, when executed, asks the questions in the
- *   order they were specified
+ *   order they were specified and returns the new results (with the answer)
  */
 Inquisitor.prototype.ask = function ask(questions) {
   questions = questions || [];
 
+  // ensure we're dealing with an array of questions
   if (!_.isArray(questions) || !questions.length) {
     throw new Error('No questions were found');
   }
 
+  // now begin reducing the questions
   return bPromise.reduce(questions, this._manifestReducer.bind(this), {});
 };
 
+/**
+ * Internal method that handles processing any questions that were specified as
+ * a string (when passed in the `questions` array to `ask`)
+ *
+ * Ensures that the question exists and then sets the question up to be asked.
+ * Also, handles updating the results based on what the user answers (when the
+ * question is asked).
+ * 
+ * @param {Object} results An object whose keys are questions that were asked
+ *   and their correlated values were the answers (from the user)
+ * @param {String} questionName The name of the question that will be asked
+ * @return {Promise} Promise that, when executed, asks the questions in the
+ *   order they were specified and returns the new results (with the answer)
+ */
 Inquisitor.prototype._performStringInquiry = function _performStringInquiry(results, questionName) {
   if (!_.has(this._manifest, questionName) || !_.isObject(this._manifest[questionName])) {
     throw new Error('Question "' + questionName + '" not found in the manifest');
