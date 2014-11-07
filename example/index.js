@@ -7,7 +7,7 @@ const questions = [
   ['favoriteShape', 'favoriteWord'],
   {
     question: 'animalChoice',
-    branch: function(answer) {
+    logic: function(answer) {
       if (answer === 'dog') {
         return ['favoriteDogType', 'favoriteDogName'];
       }

@@ -98,8 +98,8 @@ Inquisitor.prototype._performAudibleInquiry = function _performAudibleInquiry(re
     throw new Error('Pivot does not contain a valid "question" property');
   } else if (!_.has(this._manifest, pivot.question) || !_.isObject(this._manifest[pivot.question])) {
     throw new Error('Question "' + pivot.question + '" not found in the manifest');
-  } else if (!_.has(pivot, 'branch') && !_.isFunction(pivot.branch)) {
-    throw new Error('Pivot does not contain a valid "branch" property')
+  } else if (!_.has(pivot, 'logic') && !_.isFunction(pivot.logic)) {
+    throw new Error('Pivot does not contain a valid "logic" method')
   }
 
   // ask the question first
@@ -107,10 +107,10 @@ Inquisitor.prototype._performAudibleInquiry = function _performAudibleInquiry(re
   var question = this._manifest[pivot.question];
   return this._promisifyInquiry(pivot.question, question)
     .then(function(primaryAnswer) {
-      // now, run the manifest object's branch method to get back a list of
+      // now, run the pivots `logic` method to get back a list of
       // branched questions to ask the user
-      var forkedQuestions = pivot.branch.call(undefined, primaryAnswer);
-      return bPromise.reduce(forkedQuestions, reducer, {
+      var branchedQuestions = pivot.logic.call(undefined, primaryAnswer);
+      return bPromise.reduce(branchedQuestions, reducer, {
         _answer: primaryAnswer
       });
     })
