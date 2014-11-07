@@ -1,3 +1,3 @@
 describe('Inquisitor', function() {
-  require('./lib/prompt');
+  require('./lib/ask');
 });

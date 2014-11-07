@@ -1,14 +1,13 @@
-const _ = require('lodash');
 const inquisitor = require('../index');
-const questions = require('./questions');
+const manifest = require('./questions');
 
 // define the order for questioning
-const manifest = [
+const questions = [
   'favoriteColor',
   ['favoriteShape', 'favoriteWord'],
   {
     question: 'animalChoice',
-    fork: function(answer) {
+    branch: function(answer) {
       if (answer === 'dog') {
         return ['favoriteDogType', 'favoriteDogName'];
       }
@@ -21,9 +20,9 @@ const manifest = [
 
 // setup the prompting by declaring the question dictionary first (great for
 // re-use)
-var promptUser = _.partial(inquisitor.prompt, questions);
+var prompt = new inquisitor(manifest);
 
 // now, prompt the user the following questions
-promptUser(manifest).then(function(answers) {
+prompt.ask(questions).then(function(answers) {
   console.log('Answers:', answers);
 });
