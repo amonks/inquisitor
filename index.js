@@ -45,7 +45,13 @@ function Inquisitor(opts) {
 
   // handle a case where the developer could have passed JUST the manifest in
   // instead of an options object
-  this.manifest = _.isObject(opts.manifest) ? opts.manifest : (opts || {});
+  if (opts.manifest) {
+    this.manifest = opts.manifest;
+  } else if (!opts.manifest && opts.prompter) {
+    this.manifest = {};
+  } else if (!opts.manifest && !opts.prompter) {
+    this.manifest = opts;
+  }
 
   // ensure that the manifest contains at least 1 question before being
   // instantiated
