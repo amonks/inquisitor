@@ -1,26 +1,55 @@
+// dependency libraries
 const _ = require('lodash');
 const inquirer = require('inquirer');
 const bPromise = require('bluebird');
 
+// dependency functions
+const prompter = require('./lib/prompter');
+
 /**
- * Constructor that takes a manifest and stores it to the object (to be used as
- * a dictionary lookup for questions asked later)
+ * Constructor that takes in a manifest object OR an options object with a
+ * manifest and/or custom prompter.
  *
- * Example Usage:
+ * The manifest will be stored to this manifest object and used as a dictionary
+ * to lookup any questions needed when questioning.
+ *
+ * A custom prompter can be used in the event that the developer wants to use
+ * something other than inquirer to perform questioning (ie - unit testing)
+ *
+ * Example Usage (basic):
  * ```js
  * const manifest = require('./manifest');
  * const prompt = new Inquisitor(manifest);
+ * ```
+ *
+ * Example Usage (advanced):
+ * ```js
+ * const manifest = require('./manifest');
+ * const prompt = new Inquisitor({
+ *   manifest: manifest,
+ *   prompter: function(name, question) {
+ *     // create a new promise 
+ *     return promise;
+ *   }
+ * });
  * ```
  * 
  * @param {Object} manifest Contains questions that could be asked by Inquisitor.
  *   keys are the question names and values are Inquirer question objects.
  */
-function Inquisitor(manifest) {
-  this._manifest = manifest || {};
+function Inquisitor(opts) {
+  opts = opts || {};
+
+  // use the default prompter (unless a new one is passed)
+  this.prompter = _.isFunction(opts.prompter) ? opts.prompter : prompter;
+
+  // handle a case where the developer could have passed JUST the manifest in
+  // instead of an options object
+  this.manifest = _.isObject(opts.manifest) ? opts.manifest : (opts || {});
 
   // ensure that the manifest contains at least 1 question before being
   // instantiated
-  if (!_.isObject(this._manifest) || !Object.keys(this._manifest).length) {
+  if (!_.isObject(this.manifest) || !Object.keys(this.manifest).length) {
     throw new Error('An invalid manifest was supplied');
   }
 }
@@ -90,11 +119,11 @@ Inquisitor.prototype.ask = function ask(questions) {
  *   order they were specified and returns the new results (with the answer)
  */
 Inquisitor.prototype._performStringInquiry = function _performStringInquiry(results, questionName) {
-  if (!_.has(this._manifest, questionName) || !_.isObject(this._manifest[questionName])) {
+  if (!_.has(this.manifest, questionName) || !_.isObject(this.manifest[questionName])) {
     throw new Error('Question "' + questionName + '" not found in the manifest');
   }
 
-  return this._promisifyInquiry(questionName, this._manifest[questionName])
+  return this.prompter(questionName, this.manifest[questionName])
     .then(function(answer) {
       results[questionName] = answer;
       return results;
@@ -112,7 +141,7 @@ Inquisitor.prototype._performArrayInquiry = function _performArrayInquiry(result
 Inquisitor.prototype._performPivotQuery = function _performPivotQuery(results, pivot) {
   if (!_.has(pivot, 'question') || !_.isString(pivot.question)) {
     throw new Error('Pivot does not contain a valid "question" property');
-  } else if (!_.has(this._manifest, pivot.question) || !_.isObject(this._manifest[pivot.question])) {
+  } else if (!_.has(this.manifest, pivot.question) || !_.isObject(this.manifest[pivot.question])) {
     throw new Error('Question "' + pivot.question + '" not found in the manifest');
   } else if (!_.has(pivot, 'logic') && !_.isFunction(pivot.logic)) {
     throw new Error('Pivot does not contain a valid "logic" method')
@@ -120,8 +149,9 @@ Inquisitor.prototype._performPivotQuery = function _performPivotQuery(results, p
 
   // ask the question first
   var reducer = this._manifestReducer.bind(this);
-  var question = this._manifest[pivot.question];
-  return this._promisifyInquiry(pivot.question, question)
+  var question = this.manifest[pivot.question];
+  return this.prompter(pivot.question, question)
+  //return this._promisifyInquiry(pivot.question, question)
     .then(function(primaryAnswer) {
       // now, run the pivots `logic` method to get back a list of
       // branched questions to ask the user
@@ -137,8 +167,6 @@ Inquisitor.prototype._performPivotQuery = function _performPivotQuery(results, p
 };
 
 Inquisitor.prototype._manifestReducer = function _manifestReducer(results, obj) {
-  var reducer = this._manifestReducer.bind(this);
-
   if (_.isString(obj)) {
     return this._performStringInquiry(results, obj);
   } else if (_.isArray(obj)) {
@@ -150,18 +178,6 @@ Inquisitor.prototype._manifestReducer = function _manifestReducer(results, obj) 
   // if the name value was not something we were expecting, simply return the
   // unaltered results
   return results;
-};
-
-Inquisitor.prototype._promisifyInquiry = function _promisifyInquiry(name, question) {
-  return new bPromise(function(resolve) {
-    question.name = name;
-    inquirer.prompt([question], function(answers) {
-      if (!_.has(answers, name)) {
-        throw new Error('Answer not found');
-      }
-      resolve(answers[name]);
-    });
-  });
 };
 
 module.exports = Inquisitor;
