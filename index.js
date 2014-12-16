@@ -109,7 +109,7 @@ Inquisitor.prototype._performArrayInquiry = function _performArrayInquiry(result
     });
 };
 
-Inquisitor.prototype._performAudibleInquiry = function _performAudibleInquiry(results, pivot) {
+Inquisitor.prototype._performPivotQuery = function _performPivotQuery(results, pivot) {
   if (!_.has(pivot, 'question') || !_.isString(pivot.question)) {
     throw new Error('Pivot does not contain a valid "question" property');
   } else if (!_.has(this._manifest, pivot.question) || !_.isObject(this._manifest[pivot.question])) {
@@ -144,7 +144,7 @@ Inquisitor.prototype._manifestReducer = function _manifestReducer(results, obj) 
   } else if (_.isArray(obj)) {
     return this._performArrayInquiry(results, obj);
   } else if (_.isObject(obj)) {
-    return this._performAudibleInquiry(results, obj);
+    return this._performPivotQuery(results, obj);
   }
 
   // if the name value was not something we were expecting, simply return the
