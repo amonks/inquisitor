@@ -101,7 +101,7 @@ Inquisitor.prototype.ask = function ask(questions) {
   }
 
   // now begin reducing the questions
-  return bPromise.reduce(questions, this._manifestReducer.bind(this), {});
+  return bPromise.reduce(questions, this._reduceInquiries.bind(this), {});
 };
 
 /**
@@ -130,15 +130,42 @@ Inquisitor.prototype._performStringInquiry = function _performStringInquiry(resu
     });
 };
 
+/**
+ * Internal method that handles processing an array of questions by reducing
+ * them and then storing the results for future use.
+ * 
+ * @param {Object} results An object whose keys are questions that were asked
+ *   and their correlated values were the answers (from the user)
+ * @param {Array} An array containing mixed values of questions that need to be
+ *   asked
+ * @return {Promise} Promise that, when executed, asks the questions in the
+ *   order they were specified and returns the new results (with the answer)
+ */
 Inquisitor.prototype._performArrayInquiry = function _performArrayInquiry(results, questions) {
-  return bPromise.reduce(questions, this._manifestReducer.bind(this), {})
+  return bPromise.reduce(questions, this._reduceInquiries.bind(this), {})
     .then(function(answers) {
       results[questions] = answers;
       return results;
     });
 };
 
-Inquisitor.prototype._performPivotQuery = function _performPivotQuery(results, pivot) {
+/**
+ * Internal method that handles processing a "pivot" question (a question whose
+ * response changes the flow of questioning performed by inquisitor)
+ *
+ * Example:
+ * Ask the user if they like dogs or cats.
+ *   - If the user likes dogs, ask them questions that only refer to dogs.
+ *   - If the user likes cats, ask them questions that only refer to cats.
+ * 
+ * @param {Object} results An object whose keys are questions that were asked
+ *   and their correlated values were the answers (from the user)
+ * @param {Object} An object that contains logic for how to pivot the
+ *   questioning
+ * @return {Promise} Promise that, when executed, asks the questions in the
+ *   order they were specified and returns the new results (with the answer)
+ */
+Inquisitor.prototype._performPivotInquiry = function _performPivotInquiry(results, pivot) {
   if (!_.has(pivot, 'question') || !_.isString(pivot.question)) {
     throw new Error('Pivot does not contain a valid "question" property');
   } else if (!_.has(this.manifest, pivot.question) || !_.isObject(this.manifest[pivot.question])) {
@@ -148,12 +175,11 @@ Inquisitor.prototype._performPivotQuery = function _performPivotQuery(results, p
   }
 
   // ask the question first
-  var reducer = this._manifestReducer.bind(this);
+  var reducer = this._reduceInquiries.bind(this);
   var question = this.manifest[pivot.question];
   return this.prompter(pivot.question, question)
-  //return this._promisifyInquiry(pivot.question, question)
     .then(function(primaryAnswer) {
-      // now, run the pivots `logic` method to get back a list of
+      // now, run the pivot's `logic` method to get back a list of
       // branched questions to ask the user
       var branchedQuestions = pivot.logic.call(undefined, primaryAnswer);
       return bPromise.reduce(branchedQuestions, reducer, {
@@ -166,13 +192,24 @@ Inquisitor.prototype._performPivotQuery = function _performPivotQuery(results, p
     });
 };
 
-Inquisitor.prototype._manifestReducer = function _manifestReducer(results, obj) {
-  if (_.isString(obj)) {
-    return this._performStringInquiry(results, obj);
-  } else if (_.isArray(obj)) {
-    return this._performArrayInquiry(results, obj);
-  } else if (_.isObject(obj)) {
-    return this._performPivotQuery(results, obj);
+/**
+ * Linearly reduces questions by determining the type of inquiries to be
+ * performed.
+ * 
+ * @param {Object} results A container that will be used to store the results of
+ *   the questions that have been asked.
+ * @param {String|Array|Object} inquiries A variable whose type directly affects
+ *   how the inquiry should be performed.
+ * @return {Object} An object containing the answers of the questions that were
+ *   asked.
+ */
+Inquisitor.prototype._reduceInquiries = function _reduceInquiries(results, inquiries) {
+  if (_.isString(inquiries)) {
+    return this._performStringInquiry(results, inquiries);
+  } else if (_.isArray(inquiries)) {
+    return this._performArrayInquiry(results, inquiries);
+  } else if (_.isObject(inquiries)) {
+    return this._performPivotInquiry(results, inquiries);
   }
 
   // if the name value was not something we were expecting, simply return the
